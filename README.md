@@ -14,7 +14,7 @@ Requirements:
 ```
 git clone https://github.com/kovidgoyal/calibre.git
 
-git clone https://github.com/ErikLevin/calibre_rpggeek_plugin.git
+git clone https://github.com/bhcompy/calibre_rpggeek_plugin.git
 cd calibre_rpggeek_plugin
 python -m venv .venv
 .venv/Scripts/activate
