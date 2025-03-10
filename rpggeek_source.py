@@ -4,7 +4,8 @@ import re
 from datetime import datetime
 from functools import total_ordering
 from queue import Queue
-from urllib.parse import ParseResult, urlparse
+#from urllib.parse import ParseResult, urlparse, quote
+import urllib.parse
 
 from bs4 import BeautifulSoup
 from calibre.ebooks.metadata.book.base import Metadata
@@ -40,7 +41,7 @@ def _get_publisher(soup: BeautifulSoup) -> str | None:
         return tag["value"]
     return None
 
-
+#only available on certain items, such as Pathfinder Kingmaker Adventure Path/375504
 def _get_series(soup: BeautifulSoup) -> tuple[str, int]:
     series = ""
     index = 0
@@ -64,16 +65,15 @@ def _get_comments(soup: BeautifulSoup) -> str | None:
         return None
     return tag.contents[0]
 
-
 class RPGGeekSource(Source):
     """The plugin class."""
 
-    name = "RPGGeek"
+    name = "RPGGeek with Covers"
     description = "Retrieves metadata from RPGGeek"
-    version = (0, 0, 1)
-    author = "Erik Levin"
+    version = (0, 1, 0)
+    author = "bhcompy (original build from Erik Levin)"
     supported_platforms = ["windows", "osx", "linux"]
-    capabilities = frozenset(["identify"])
+    capabilities = frozenset(["identify", "cover"])
     touched_fields = frozenset(
         [
             "identifier:rpggeek",
@@ -83,8 +83,13 @@ class RPGGeekSource(Source):
             "pubdate",
             "publisher",
             "series",
+            "tags",
         ]
     )
+
+    has_html_comments = True
+    cached_cover_url_is_reliable = True
+    can_get_multiple_covers = False
 
     # TODO Future work - settings
     # - What to use as authors. First designer, all designers, fallback to artists,
@@ -98,6 +103,8 @@ class RPGGeekSource(Source):
     # TODO Future work - cover art
     # - get_cached_cover_url
     # - download_cover
+
+
 
     # TODO Future work - ISBN, product code, and language. Need to get them from
     # rpgitemversion, which aren't in the API, so, need to search and scrape.
@@ -189,6 +196,12 @@ class RPGGeekSource(Source):
         publisher = _get_publisher(soup)
         series, index = _get_series(soup)
         comments = _get_comments(soup)
+        tags = [
+            x["value"] for x in soup.find_all("link", attrs={"type": "rpggenre"})
+        ]
+
+        self.cover_url = soup.find("image").text
+        log.info("cover_url=",self.cover_url)
 
         metadata = Metadata(title, authors)
         metadata.set_identifier(_ID_TYPE, rpggeek_id)
@@ -197,8 +210,10 @@ class RPGGeekSource(Source):
         metadata.series = series
         metadata.comments = comments
         metadata.series_index = index
+        metadata.tags = tags
         metadata.source = self.name
         metadata.source_relevance = relevance
+        metadata.has_cover = self.cover_url is not None
         self.clean_downloaded_metadata(metadata)
         result_queue.put(metadata)
 
@@ -246,3 +261,20 @@ class RPGGeekSource(Source):
             )
         else:
             self._search_title(title, result_queue, log)
+
+    def download_cover(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30, get_best_cover=False):
+#        can't get this part to work.. passing cached url documentation is.. sparse
+#        cached_url = self.get_cached_cover_url(identifiers)
+#        log.info("cached_url=", cached_url)
+
+        rq = Queue()
+
+        self.identify(log, rq, abort, title=title, authors=authors,
+        identifiers=identifiers)
+        rpggeek_id = identifiers.get(_ID_TYPE, None)
+        url = self.cover_url
+        log.info("download_cover_url=",url)
+
+        browser = self.browser
+        cdata = browser.open_novisit(url, timeout=timeout).read()
+        result_queue.put((self, cdata))
