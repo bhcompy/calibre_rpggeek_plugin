@@ -24,7 +24,7 @@ Limitations:
 - Not every item has a series.  Originally intended to group by RPG system for use with Kavita as Series, but this seems too restrictive if a Kavita library is organized by system already.  Series instead pulls from rpgseries, which is more oriented around modules.  For instance, Kingmaker Adventure Path (PF2) has a series of Kingmaker and a series of Pathfinder Adventure Path.  It pulls the first series only (as Calibre and Kavita both only support one).
 
 Future Considerations:
-- rpgitemversion support (cover, publisher(s), date, language by version)
+- rpgitemversion support (cover, publisher(s), date, language by version) -- Further research shows no API available for rpgitemversion, and BGG has no intention of adding this and has not enhanced the API for years.  Could scrape, but this seems too complex for my capabilities.
 - Setting and Category included in tags
 
 ## Develop
